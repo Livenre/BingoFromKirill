@@ -89,8 +89,20 @@ export function generateTable(num) {
 
       td.addEventListener("click", () => {
 
-        if (document.querySelector(".switch input").checked) return;
+        if (document.querySelector(".switch input").checked) {
 
+          const textarea = document.createElement("textarea");
+          textarea.value = td.textContent;
+          td.textContent = "";
+          td.appendChild(textarea);
+          textarea.focus();
+
+          textarea.addEventListener("blur", () => {
+            td.textContent = textarea.value;
+          });
+        
+        return;
+      }
         td.classList.toggle("selected");
 
         checkWin(table);
