@@ -32,15 +32,56 @@ function winConditionMet() {
   return false;
 }
 
+
+function updateFavicon() {
+  let color = "yellow";
+
+  if (winConditionMet()) {
+    color = "green";
+  } else {
+    const hasErrors = state.texts.some((text) =>
+      (text && state.texts.filter((t) => t === text).length > 1) || (text && text.length > 50) );
+    if (hasErrors) {
+      color = "red"; 
+    }
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 32;
+  canvas.height = 32;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 32, 32);
+
+  const favicon = document.querySelector("link[rel='icon']");
+  favicon.href = canvas.toDataURL();
+}
+
+
 export function render(table) {
   //console.log(structuredClone(state));
   const tableElement = table ?? document.querySelector("table");
   const cells = [...tableElement.querySelectorAll("td")];
-  state.texts.forEach((text, index) => {
-    cells[index].textContent = text ?? index;
+
+  
+  const textCount = {};
+  state.texts.forEach((text) => {
+    if (text) {
+      textCount[text] = (textCount[text] || 0) + 1;
+    }
   });
 
   cells.forEach((cell, idx) => {
+    cell.textContent = state.texts[idx] ?? idx;
+
+
+    if (state.texts[idx] === "*") {
+      if (!state.selected.includes(idx)) {
+        state.selected.push(idx);
+      }
+    }
+    
     if (state.selected.includes(idx)) {
       cell.classList.add("selected");
     } else {
@@ -48,8 +89,32 @@ export function render(table) {
     }
 
     if (state.isAuthorMode && state.currentlyEditing === idx) {
-      alert("Тут має бути textarea");
+      const textarea = document.createElement("textarea");
+      textarea.value = state.texts[idx] ?? "";
+
+      textarea.addEventListener("blur", (e) => {
+        state.texts[idx] = e.target.value.trim();
+        state.currentlyEditing = null;
+        render();
+      
+        
+      });
+
+      cell.textContent = "";
+      cell.appendChild(textarea);
+      textarea.focus();
     }
+
+    
+    if (
+      state.isAuthorMode &&
+      ((state.texts[idx] && textCount[state.texts[idx]] > 1) || (state.texts[idx] && state.texts[idx].length > 50))
+    ) {
+      cell.classList.add("error");
+    } else {
+      cell.classList.remove("error");
+    }
+
   });
 
   const bingo = document.querySelector(".bingo");
@@ -61,16 +126,73 @@ export function render(table) {
     bingo.setAttribute("hidden", "hidden");
     // ...
   }
+
+
+ 
+  const authorSwitcher = document.querySelector(".author-switcher");
+
+  if (state.isAuthorMode) {
+    if (!document.querySelector(".share-button")) {
+      const shareButton = document.createElement("button");
+      shareButton.textContent = "Поділитися";
+      shareButton.classList.add("share-button");
+
+      shareButton.addEventListener("click", () => {
+        const encodedState = btoa(unescape(encodeURIComponent(JSON.stringify(state)))); // Кодируем в base64 безопасно
+        const url = `${window.location.origin}${window.location.pathname}#${encodedState}`;
+      
+        navigator.clipboard.writeText(url)
+          .then(() => alert("Посилання скопійовано!"))
+          .catch(err => console.error("Не вдалося скопіювати посилання", err));
+      });
+
+      authorSwitcher.appendChild(shareButton);
+    }
+  } else {
+    const shareButton = document.querySelector(".share-button");
+    if (shareButton) {
+      shareButton.remove();
+    }
+  }
+ 
+
+
+  const newHash = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+if (window.location.hash.substring(1) !== newHash) {
+  window.location.hash = newHash;
 }
+  
+updateFavicon();
+}
+
+
+document.querySelector(".switch input").addEventListener("change", (e) => {
+  state.isAuthorMode = e.target.checked;
+
+  if (state.isAuthorMode) {
+    state.selected = [];
+  }
+
+  render();
+
+  // Сохраняем состояние в URL
+  const encodedState = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+  window.location.hash = encodedState;
+});
 
 function handleCellClick(idx) {
   if (state.isAuthorMode) {
     state.currentlyEditing = idx;
+    
   } else {
+    if (state.texts[idx] === "*") {
+      return;
+    }
+    
     if (!state.selected.includes(idx)) {
       state.selected.push(idx);
     } else {
-      state.selected = state.selected.filter((item) => item !== idx)
+      state.selected = state.selected.filter((item) => item !== idx);
     }
   }
 
@@ -81,6 +203,10 @@ export function generateTable(num){
   const table = document.createElement("table");
   const tbody = document.createElement("tbody");
   table.appendChild(tbody);
+
+
+  document.querySelector(".switch input").checked = state.isAuthorMode;
+
   for (let i = 0; i < num; i++) {
     const tr = document.createElement("tr");
     for (let j = 0; j < num; j++) {
@@ -100,10 +226,29 @@ export function generateTable(num){
       render();
     });
 
-  
+    const hash = window.location.hash.substring(1);
+if (hash) {
+  try {
+    const decodedState = JSON.parse(decodeURIComponent(escape(atob(hash))));
+    Object.assign(state, decodedState);
+  } catch (err) {
+    console.error("Не вдалося завантажити збережене бінго", err);
+  }
+}
+
+document.querySelector(".switch input").checked = state.isAuthorMode;
+
   render(table);
   return table;
 }
+
+
+window.addEventListener("beforeunload", (event) => {
+  if (state.isAuthorMode && state.currentlyEditing !== null) {
+    event.preventDefault();
+    event.returnValue = ""; // Это необходимо для совместимости с разными браузерами
+  }
+});
 
 /*
 function checkWin(table) {
