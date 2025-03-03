@@ -1,6 +1,6 @@
 const state = {
   texts: ["тест", "foo"],
-  selected: [2, 3, 5, 7],
+  selected: [],
   isAuthorMode: false,
   currentlyEditing: null,
 };
@@ -138,7 +138,7 @@ export function render(table) {
       shareButton.classList.add("share-button");
 
       shareButton.addEventListener("click", () => {
-        const encodedState = btoa(unescape(encodeURIComponent(JSON.stringify(state)))); // Кодируем в base64 безопасно
+        const encodedState = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
         const url = `${window.location.origin}${window.location.pathname}#${encodedState}`;
       
         navigator.clipboard.writeText(url)
@@ -175,7 +175,7 @@ document.querySelector(".switch input").addEventListener("change", (e) => {
 
   render();
 
-  // Сохраняем состояние в URL
+  
   const encodedState = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
   window.location.hash = encodedState;
 });
@@ -246,7 +246,7 @@ document.querySelector(".switch input").checked = state.isAuthorMode;
 window.addEventListener("beforeunload", (event) => {
   if (state.isAuthorMode && state.currentlyEditing !== null) {
     event.preventDefault();
-    event.returnValue = ""; // Это необходимо для совместимости с разными браузерами
+    event.returnValue = "";
   }
 });
 
