@@ -131,8 +131,8 @@ document.querySelector(".switch input").addEventListener("change", (e) => {
 
 
 function adjustFontSize(cell) {
-  const minFontSize = 5;
-  const maxFontSize = 30;
+  const minFontSize = 5;  
+  const maxFontSize = 30; 
   let fontSize = minFontSize;
   
   cell.style.fontSize = `${fontSize}px`;
@@ -140,11 +140,14 @@ function adjustFontSize(cell) {
   const cellWidth = cell.offsetWidth;
   const cellHeight = cell.offsetHeight;
 
+  //function doesTextFit() {
+  //  const textRect = cell.getBoundingClientRect();
+  //  return textRect.width <= cellWidth && textRect.height <= cellHeight;
+  //}
   function doesTextFit() {
-    const textRect = cell.getBoundingClientRect();
-    return textRect.width <= cellWidth && textRect.height <= cellHeight;
+    return cell.scrollWidth <= cellWidth && cell.scrollHeight <= cellHeight;
   }
-
+  
   while (fontSize < maxFontSize) {
     fontSize++;
     cell.style.fontSize = `${fontSize}px`;
@@ -158,3 +161,9 @@ function adjustFontSize(cell) {
   cell.style.fontSize = `${fontSize}px`;
 }
 
+window.onload = function() {
+    document.querySelectorAll("td").forEach(cell => {
+      cell.offsetHeight; // Форсируем ререндер
+      adjustFontSize(cell);
+    });
+};
